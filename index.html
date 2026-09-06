@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260906173459">
+<meta name="build-version" content="20260906174109">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -301,7 +301,7 @@
 
   .field{margin-bottom:16px}
   .field label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:6px}
-  .field input[type=text], .field input[type=month], .field textarea{
+  .field input[type=text], .field input[type=month], .field input[type=number], .field textarea{
     width:100%; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper);
     color:var(--ink); font-family:inherit; font-size:16px; padding:9px 11px;
   }
@@ -522,8 +522,8 @@
     return `background:linear-gradient(160deg, hsl(${hue} 32% 26%), hsl(${hue2} 40% 15%));`;
   }
 
-  // small "★ note/10 · mois année" caption, shown on the cover itself —
-  // uses the rating and the date (fin de lecture, sinon début) set on the fiche.
+  // small "★ note/10 · mois année · N p." caption, shown on the cover itself —
+  // uses the rating, la date et le nombre de pages renseignés sur la fiche.
   function coverMetaHtml(book){
     const parts = [];
     if(book.status === "lu" && typeof book.rating === "number"){
@@ -531,6 +531,7 @@
     }
     const d = book.dateStarted;
     if(d) parts.push(formatMonthFr(d));
+    if(book.pageCount){ parts.push(book.pageCount + " p."); }
     return parts.length ? escapeHtml(parts.join(" · ")) : "";
   }
 
@@ -665,6 +666,7 @@
     const dateLabel = book.dateStarted
       ? (book.status === "lu" ? "Lu en " : book.status === "en_cours" ? "Commencé en " : "") + formatMonthFr(book.dateStarted)
       : "";
+    const pagesLabel = book.pageCount ? book.pageCount + " pages" : "";
 
     const preHtml = book.preSummary
       ? `<p class="read-prose">${escapeHtml(book.preSummary)}</p>`
@@ -696,6 +698,7 @@
           <div class="read-meta">
             ${ratingHtml}
             ${dateLabel ? `<span class="card-date">${escapeHtml(dateLabel)}</span>` : ""}
+            ${pagesLabel ? `<span class="card-date">${escapeHtml(pagesLabel)}</span>` : ""}
           </div>
 
           <div class="read-section">
@@ -728,7 +731,7 @@
     pendingDeleteId = null;
     const book = id ? bookById(id) : {
       title:"", author:"", status:"a_lire", rating:null,
-      dateStarted:currentMonthStr(),
+      dateStarted:currentMonthStr(), pageCount:null,
       notes:"", preSummary:"", postSummary:"", cover:""
     };
     renderModal(book);
@@ -793,6 +796,11 @@
                     <label>Auteur</label>
                     <input type="text" id="authorInput" value="${escapeHtml(book.author||"")}" placeholder="Nom de l'auteur">
                   </div>
+                </div>
+
+                <div class="field" style="max-width:180px">
+                  <label>Nombre de pages</label>
+                  <input type="number" id="pageCountInput" min="0" step="1" inputmode="numeric" value="${book.pageCount != null ? book.pageCount : ""}" placeholder="Ex. 320">
                 </div>
 
                 <hr class="divider">
@@ -869,7 +877,15 @@
     function buildClaudePrompt(){
       const title = document.getElementById("titleInput").value.trim() || "[titre du livre]";
       const author = document.getElementById("authorInput").value.trim();
-      return `Cherche des informations réelles sur le livre "${title}"${author ? " de " + author : ""}. Donne-moi :\n1. Une URL d'image de couverture réelle et stable (par exemple Fnac, Cultura ou Open Library)\n2. Un résumé avant lecture, sans spoiler (façon quatrième de couverture)\n3. Un résumé après lecture complet, avec la fin, écrit avec tes propres mots (jamais de copier-coller de texte protégé)\n\nJe vais coller ces 3 éléments dans mon Carnet de Lecture.`;
+      const items = [
+        "Une URL d'image de couverture réelle et stable (par exemple Fnac, Cultura ou Open Library)",
+        "Un résumé avant lecture, sans spoiler (façon quatrième de couverture)",
+        "Un résumé après lecture complet, avec la fin, écrit avec tes propres mots (jamais de copier-coller de texte protégé)"
+      ];
+      if(!author) items.push("Le nom de l'auteur du livre");
+      items.push("Le nombre de pages de l'édition courante (un chiffre approximatif si besoin)");
+      const list = items.map((it,i)=> (i+1) + ". " + it).join("\n");
+      return `Cherche des informations réelles sur le livre "${title}"${author ? " de " + author : ""}. Donne-moi :\n${list}\n\nJe vais coller ces éléments dans mon Carnet de Lecture.`;
     }
 
     const btnCopyPrompt = document.getElementById("btnCopyPrompt");
@@ -912,6 +928,7 @@
         status: currentStatus,
         rating: currentStatus === "lu" ? parseFloat(ratingInput.value) : (book.rating ?? null),
         dateStarted: document.getElementById("dateStarted").value || "",
+        pageCount: document.getElementById("pageCountInput").value.trim() !== "" ? parseInt(document.getElementById("pageCountInput").value, 10) : null,
         notes: document.getElementById("notesInput").value,
         preSummary: document.getElementById("preSummary").value,
         postSummary: document.getElementById("postSummary").value,
@@ -948,6 +965,7 @@
       rating: row.rating === null || row.rating === undefined ? null : Number(row.rating),
       dateStarted: row.date_started ? String(row.date_started).slice(0,7) : "",
       dateFinished: row.date_finished ? String(row.date_finished).slice(0,7) : "",
+      pageCount: (row.page_count === null || row.page_count === undefined) ? null : Number(row.page_count),
       notes: row.notes || "",
       preSummary: row.pre_summary || "",
       postSummary: row.post_summary || "",
@@ -965,6 +983,7 @@
       rating: (data.rating === null || data.rating === undefined) ? null : data.rating,
       date_started: data.dateStarted ? data.dateStarted + "-01" : null,
       date_finished: data.dateFinished ? data.dateFinished + "-01" : null,
+      page_count: (data.pageCount === null || data.pageCount === undefined || data.pageCount === "") ? null : parseInt(data.pageCount, 10),
       notes: data.notes || null,
       pre_summary: data.preSummary || null,
       post_summary: data.postSummary || null,
