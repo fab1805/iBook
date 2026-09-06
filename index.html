@@ -272,8 +272,57 @@
   .summary-block h3{font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); font-weight:700; margin:0 0 8px; display:flex; align-items:center; gap:8px}
   .summary-block h3 svg{width:14px; height:14px; color:var(--accent)}
 
+  .spoiler-details{border:1px dashed var(--abandoned-line); border-radius:var(--radius); padding:12px 14px; background:color-mix(in srgb, var(--abandoned-fg) 6%, transparent)}
+  .spoiler-details summary{
+    font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--abandoned-fg); font-weight:700;
+    cursor:pointer; display:flex; align-items:center; gap:8px; list-style:none;
+  }
+  .spoiler-details summary::-webkit-details-marker{display:none}
+  .spoiler-details summary svg{width:14px; height:14px; flex:none}
+  .spoiler-details summary::after{content:"Afficher"; margin-left:auto; font-size:11px; text-transform:none; letter-spacing:0; color:var(--ink-faint); font-weight:600}
+  .spoiler-details[open] summary::after{content:"Masquer"}
+
   .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
   .confirm-delete{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft)}
+
+  /* ---------- full-page read view ---------- */
+  .read-page{position:fixed; inset:0; background:var(--paper); z-index:60; overflow-y:auto}
+  .read-topbar{
+    position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; background:var(--paper); border-bottom:1px solid var(--line);
+  }
+  .read-content{max-width:680px; margin:0 auto; padding:32px 24px 100px}
+  .read-cover{
+    height:320px; border-radius:6px; overflow:hidden; position:relative; margin-bottom:26px;
+    color:#f4ede0; display:flex; align-items:flex-end; padding:18px; border:1px solid var(--line);
+  }
+  .read-cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .read-cover .cover-text{position:relative; z-index:1}
+  .status-chip.static{position:static; display:inline-flex; backdrop-filter:none}
+  .read-title{font-size:33px; margin:12px 0 4px; line-height:1.1}
+  .read-author{font-size:15.5px; color:var(--ink-soft); margin-bottom:14px}
+  .read-meta{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:6px}
+  .read-section{margin-top:32px}
+  .read-section h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); font-weight:700;
+    margin:0 0 12px; display:flex; align-items:center; gap:8px;
+  }
+  .read-section h2 svg{width:15px; height:15px; color:var(--accent)}
+  .read-prose{font-family:"Newsreader",serif; font-size:18px; line-height:1.7; color:var(--ink); max-width:65ch; white-space:pre-wrap}
+  .read-prose.muted{color:var(--ink-faint); font-style:italic; font-size:15.5px}
+  .spoiler-reveal{
+    border:1px dashed var(--abandoned-line); border-radius:var(--radius); padding:14px 16px;
+    background:color-mix(in srgb, var(--abandoned-fg) 6%, transparent);
+  }
+  .spoiler-reveal summary{
+    font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--abandoned-fg); font-weight:700;
+    cursor:pointer; display:flex; align-items:center; gap:8px; list-style:none;
+  }
+  .spoiler-reveal summary::-webkit-details-marker{display:none}
+  .spoiler-reveal summary svg{width:15px; height:15px; flex:none}
+  .spoiler-reveal summary::after{content:"Afficher"; margin-left:auto; font-size:11px; text-transform:none; letter-spacing:0; color:var(--ink-faint); font-weight:600}
+  .spoiler-reveal[open] summary::after{content:"Masquer"}
+  .spoiler-reveal[open] summary{margin-bottom:14px}
 
   @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
 </style>
@@ -394,12 +443,20 @@
     });
   }
 
-  function formatDateFr(iso){
-    if(!iso) return "";
+  // dates are stored/edited at the month precision only ("YYYY-MM"),
+  // saved to the database as the 1st of that month for compatibility
+  // with a SQL "date" column.
+  function formatMonthFr(monthIso){
+    if(!monthIso) return "";
     try{
-      const d = new Date(iso + "T00:00:00");
-      return new Intl.DateTimeFormat("fr-FR", {day:"numeric", month:"long", year:"numeric"}).format(d);
-    }catch(e){ return iso; }
+      const d = new Date(monthIso + "-01T00:00:00");
+      return new Intl.DateTimeFormat("fr-FR", {month:"long", year:"numeric"}).format(d);
+    }catch(e){ return monthIso; }
+  }
+
+  function currentMonthStr(){
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
   }
 
   function hashHue(str){
@@ -497,7 +554,7 @@
       const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
         ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
         : `<span></span>`;
-      const dateLabel = book.dateFinished ? formatDateFr(book.dateFinished) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
+      const dateLabel = book.dateFinished ? formatMonthFr(book.dateFinished) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
       return `
         <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
           <div class="cover" style="${coverStyle(book)}">
@@ -517,20 +574,89 @@
 
     gridContainer.innerHTML = `<div class="grid">${cards}</div>`;
     gridContainer.querySelectorAll(".card").forEach(el=>{
-      el.addEventListener("click", ()=> openEditor(el.dataset.id));
-      el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); openEditor(el.dataset.id); } });
+      el.addEventListener("click", ()=> openReadView(el.dataset.id));
+      el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); openReadView(el.dataset.id); } });
     });
   }
 
   // ---------- editor modal ----------
   function bookById(id){ return books.find(b=>b.id===id) || null; }
 
+  // ---------- full-page read view ----------
+  function openReadView(id){
+    const book = bookById(id);
+    if(!book) return;
+
+    const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
+      ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
+      : "";
+    const startedLabel = book.dateStarted ? "Commencé en " + formatMonthFr(book.dateStarted) : "";
+    const finishedLabel = book.dateFinished && book.status === "lu" ? "Terminé en " + formatMonthFr(book.dateFinished) : "";
+
+    const preHtml = book.preSummary
+      ? `<p class="read-prose">${escapeHtml(book.preSummary)}</p>`
+      : `<p class="read-prose muted">Pas encore de résumé avant lecture.</p>`;
+
+    const postBlock = book.postSummary
+      ? `<details class="spoiler-reveal">
+           <summary>
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14A2 2 0 004.18 21h15.64a2 2 0 001.87-3.14l-8.18-14a2 2 0 00-3.42 0z"/></svg>
+             ⚠️ Attention spoiler — Résumé après lecture
+           </summary>
+           <p class="read-prose">${escapeHtml(book.postSummary)}</p>
+         </details>`
+      : `<p class="read-prose muted">Pas encore de résumé après lecture.</p>`;
+
+    modalRoot.innerHTML = `
+      <div class="read-page" id="readPage">
+        <div class="read-topbar">
+          <button class="btn btn-ghost" id="btnBack">← Retour</button>
+          <button class="btn btn-ghost" id="btnEditFromRead">✏️ Modifier</button>
+        </div>
+        <div class="read-content">
+          <div class="read-cover" style="${coverStyle(book)}">
+            <span class="status-chip static" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
+            ${coverInnerHtml(book)}
+          </div>
+          <h1 class="read-title serif-display">${escapeHtml(book.title || "Sans titre")}</h1>
+          <div class="read-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
+          <div class="read-meta">
+            ${ratingHtml}
+            ${finishedLabel ? `<span class="card-date">${escapeHtml(finishedLabel)}</span>` : (startedLabel ? `<span class="card-date">${escapeHtml(startedLabel)}</span>` : "")}
+          </div>
+
+          <div class="read-section">
+            <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5V5a2 2 0 012-2h13v14H6a2 2 0 00-2 2Zm0 0a2 2 0 002 2h13"/></svg>Résumé avant lecture</h2>
+            ${preHtml}
+          </div>
+
+          <div class="read-section">
+            ${postBlock}
+          </div>
+
+          ${book.notes ? `
+          <div class="read-section">
+            <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6c-1.6-1.6-4.2-1.6-5.8 0l-1 1-1-1c-1.6-1.6-4.2-1.6-5.8 0-1.6 1.6-1.6 4.2 0 5.8L12 15.4l4.8-5c1.6-1.6 1.6-4.2 0-5.8z"/></svg>Mes impressions</h2>
+            <p class="read-prose">${escapeHtml(book.notes)}</p>
+          </div>` : ""}
+        </div>
+      </div>`;
+
+    document.getElementById("btnBack").addEventListener("click", closeModal);
+    document.getElementById("btnEditFromRead").addEventListener("click", ()=> openEditor(book.id));
+    document.addEventListener("keydown", readEscHandler);
+    function readEscHandler(e){
+      if(e.key === "Escape"){ closeModal(); document.removeEventListener("keydown", readEscHandler); }
+    }
+  }
+
   function openEditor(id){
     editingId = id;
     pendingDeleteId = null;
     const book = id ? bookById(id) : {
       title:"", author:"", status:"a_lire", rating:null,
-      dateStarted:"", dateFinished:"", notes:"", preSummary:"", postSummary:"", cover:""
+      dateStarted:currentMonthStr(), dateFinished:currentMonthStr(),
+      notes:"", preSummary:"", postSummary:"", cover:""
     };
     renderModal(book);
   }
@@ -581,12 +707,12 @@
                 </div>
                 <div class="date-row">
                   <div class="field">
-                    <label>Début</label>
-                    <input type="date" id="dateStarted" value="${escapeHtml(book.dateStarted||"")}">
+                    <label>Début (mois)</label>
+                    <input type="month" id="dateStarted" value="${escapeHtml(book.dateStarted||"")}">
                   </div>
                   <div class="field">
-                    <label>Fin</label>
-                    <input type="date" id="dateFinished" value="${escapeHtml(book.dateFinished||"")}">
+                    <label>Fin (mois)</label>
+                    <input type="month" id="dateFinished" value="${escapeHtml(book.dateFinished||"")}">
                   </div>
                 </div>
               </div>
@@ -612,13 +738,13 @@
                   </div>
                 </div>
 
-                <div class="summary-block">
-                  <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>Résumé après lecture</h3>
-                  <div class="field">
+                <details class="summary-block spoiler-details">
+                  <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14A2 2 0 004.18 21h15.64a2 2 0 001.87-3.14l-8.18-14a2 2 0 00-3.42 0z"/></svg>⚠️ Attention spoiler — Résumé après lecture</summary>
+                  <div class="field" style="margin-top:12px">
                     <textarea id="postSummary" placeholder="L'intégralité de l'histoire en résumé, pour vous en souvenir dans quelques années…" style="min-height:120px">${escapeHtml(book.postSummary||"")}</textarea>
                     <div class="hint">Complet, avec la fin — pour se rappeler le livre longtemps après.</div>
                   </div>
-                </div>
+                </details>
 
                 <div class="field">
                   <label>Mes impressions</label>
@@ -626,7 +752,12 @@
                 </div>
 
                 <div class="banner" style="margin-bottom:0">
-                  Demandez à Claude dans le chat : <strong>« complète la fiche de [titre] »</strong>. Claude cherche une vraie couverture et rédige les deux résumés — il ne reste plus qu'à coller les 3 résultats ici (couverture, résumé avant, résumé après).
+                  Claude cherche une vraie couverture et rédige les deux résumés — il ne reste plus qu'à coller les 3 résultats ici (couverture, résumé avant, résumé après).
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">
+                    <button type="button" class="btn btn-ghost" id="btnCopyPrompt" style="padding:7px 12px; font-size:12.5px">📋 Copier la demande pour Claude</button>
+                    <a class="btn btn-ghost" id="btnOpenClaude" href="#" style="padding:7px 12px; font-size:12.5px">🔗 Ouvrir dans l'app Claude</a>
+                  </div>
+                  <div class="hint" style="margin-top:8px">« Ouvrir dans l'app Claude » fonctionne de façon fiable sur Claude Desktop (Mac/Windows/Linux) ; sur mobile, utilisez plutôt « Copier la demande » puis collez-la dans une conversation Claude.</div>
                 </div>
               </div>
             </div>
@@ -666,6 +797,30 @@
       const preview = Object.assign({}, book, {cover: coverInput.value.trim()});
       coverPreview.style = coverStyle(preview);
       coverPreview.innerHTML = coverInnerHtml(preview);
+    });
+
+    function buildClaudePrompt(){
+      const title = document.getElementById("titleInput").value.trim() || "[titre du livre]";
+      const author = document.getElementById("authorInput").value.trim();
+      return `Cherche des informations réelles sur le livre "${title}"${author ? " de " + author : ""}. Donne-moi :\n1. Une URL d'image de couverture réelle et stable (par exemple Fnac, Cultura ou Open Library)\n2. Un résumé avant lecture, sans spoiler (façon quatrième de couverture)\n3. Un résumé après lecture complet, avec la fin, écrit avec tes propres mots (jamais de copier-coller de texte protégé)\n\nJe vais coller ces 3 éléments dans mon Carnet de Lecture.`;
+    }
+
+    const btnCopyPrompt = document.getElementById("btnCopyPrompt");
+    const btnCopyPromptLabel = btnCopyPrompt.textContent;
+    btnCopyPrompt.addEventListener("click", async ()=>{
+      const text = buildClaudePrompt();
+      try{
+        await navigator.clipboard.writeText(text);
+        btnCopyPrompt.textContent = "Copié ✓";
+        setTimeout(()=>{ btnCopyPrompt.textContent = btnCopyPromptLabel; }, 1600);
+      }catch(e){
+        window.prompt("Copiez ce texte (Ctrl/Cmd+C) :", text);
+      }
+    });
+
+    document.getElementById("btnOpenClaude").addEventListener("click", (e)=>{
+      e.preventDefault();
+      window.location.href = "claude://claude.ai/new?q=" + encodeURIComponent(buildClaudePrompt());
     });
 
     document.getElementById("scrim").addEventListener("click", (e)=>{ if(e.target.id === "scrim") closeModal(); });
@@ -725,8 +880,8 @@
       author: row.author || "",
       status: row.status,
       rating: row.rating === null || row.rating === undefined ? null : Number(row.rating),
-      dateStarted: row.date_started || "",
-      dateFinished: row.date_finished || "",
+      dateStarted: row.date_started ? String(row.date_started).slice(0,7) : "",
+      dateFinished: row.date_finished ? String(row.date_finished).slice(0,7) : "",
       notes: row.notes || "",
       preSummary: row.pre_summary || "",
       postSummary: row.post_summary || "",
@@ -742,8 +897,8 @@
       author: data.author || null,
       status: data.status,
       rating: (data.rating === null || data.rating === undefined) ? null : data.rating,
-      date_started: data.dateStarted || null,
-      date_finished: data.dateFinished || null,
+      date_started: data.dateStarted ? data.dateStarted + "-01" : null,
+      date_finished: data.dateFinished ? data.dateFinished + "-01" : null,
       notes: data.notes || null,
       pre_summary: data.preSummary || null,
       post_summary: data.postSummary || null,
