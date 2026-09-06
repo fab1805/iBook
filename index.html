@@ -561,6 +561,11 @@
                   ${coverInnerHtml(book)}
                 </div>
                 <div class="field">
+                  <label>Couverture (URL d'image)</label>
+                  <input type="text" id="coverInput" value="${escapeHtml(book.cover||"")}" placeholder="https://…">
+                  <div class="hint">Collez ici un lien d'image trouvé par Claude dans le chat.</div>
+                </div>
+                <div class="field">
                   <label>Statut de lecture</label>
                   <div class="segmented-grid" id="statusEdit">
                     ${STATUS_ORDER.map(s=>`<button data-value="${s}" class="${book.status===s?'active':''}">${STATUS_LABEL[s]}</button>`).join("")}
@@ -621,7 +626,7 @@
                 </div>
 
                 <div class="banner" style="margin-bottom:0">
-                  Pour remplir automatiquement la couverture et les deux résumés, demandez à Claude dans le chat : <strong>« complète la fiche de [titre] »</strong>.
+                  Demandez à Claude dans le chat : <strong>« complète la fiche de [titre] »</strong>. Claude cherche une vraie couverture et rédige les deux résumés — il ne reste plus qu'à coller les 3 résultats ici (couverture, résumé avant, résumé après).
                 </div>
               </div>
             </div>
@@ -655,6 +660,14 @@
     const ratingValue = document.getElementById("ratingValue");
     ratingInput.addEventListener("input", ()=>{ ratingValue.textContent = parseFloat(ratingInput.value).toFixed(1); });
 
+    const coverInput = document.getElementById("coverInput");
+    const coverPreview = document.getElementById("coverPreview");
+    coverInput.addEventListener("input", ()=>{
+      const preview = Object.assign({}, book, {cover: coverInput.value.trim()});
+      coverPreview.style = coverStyle(preview);
+      coverPreview.innerHTML = coverInnerHtml(preview);
+    });
+
     document.getElementById("scrim").addEventListener("click", (e)=>{ if(e.target.id === "scrim") closeModal(); });
     document.getElementById("btnClose").addEventListener("click", closeModal);
     document.getElementById("btnCancel").addEventListener("click", closeModal);
@@ -681,7 +694,7 @@
         notes: document.getElementById("notesInput").value,
         preSummary: document.getElementById("preSummary").value,
         postSummary: document.getElementById("postSummary").value,
-        cover: book.cover || ""
+        cover: document.getElementById("coverInput").value.trim()
       };
       await saveBook(editingId, data, isNew);
       closeModal();
