@@ -185,9 +185,10 @@
     color:#f4ede0; overflow:hidden;
   }
   .cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .cover .cover-text{position:relative; z-index:1}
+  .cover .cover-text{position:relative; z-index:1; text-shadow:0 1px 6px rgba(0,0,0,.55)}
   .cover .cover-title{font-family:"Fraunces",serif; font-weight:600; font-size:16px; line-height:1.2; text-wrap:balance}
   .cover .cover-author{font-size:11px; opacity:.85; margin-top:4px}
+  .cover-meta{font-size:11px; opacity:.9; margin-top:4px; font-weight:600; font-variant-numeric:tabular-nums}
   .status-chip{
     position:absolute; top:10px; left:10px; z-index:2; font-size:10.5px; font-weight:700;
     text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:20px;
@@ -247,7 +248,7 @@
     color:#f4ede0; display:flex; align-items:flex-end; padding:14px; border:1px solid var(--line);
   }
   .cover-preview img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .cover-preview .cover-text{position:relative; z-index:1}
+  .cover-preview .cover-text{position:relative; z-index:1; text-shadow:0 1px 6px rgba(0,0,0,.55)}
 
   .field{margin-bottom:16px}
   .field label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:6px}
@@ -297,7 +298,8 @@
     color:#f4ede0; display:flex; align-items:flex-end; padding:18px; border:1px solid var(--line);
   }
   .read-cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-  .read-cover .cover-text{position:relative; z-index:1}
+  .read-cover .cover-text{position:relative; z-index:1; text-shadow:0 1px 6px rgba(0,0,0,.55)}
+  .read-cover .cover-meta{font-size:13px}
   .status-chip.static{position:static; display:inline-flex; backdrop-filter:none}
   .read-title{font-size:33px; margin:12px 0 4px; line-height:1.1}
   .read-author{font-size:15.5px; color:var(--ink-soft); margin-bottom:14px}
@@ -471,13 +473,28 @@
     return `background:linear-gradient(160deg, hsl(${hue} 32% 26%), hsl(${hue2} 40% 15%));`;
   }
 
+  // small "★ note/10 · mois année" caption, shown on the cover itself —
+  // uses the rating and the date (fin de lecture, sinon début) set on the fiche.
+  function coverMetaHtml(book){
+    const parts = [];
+    if(book.status === "lu" && typeof book.rating === "number"){
+      parts.push("★ " + book.rating.toFixed(1) + "/10");
+    }
+    const d = book.dateFinished || book.dateStarted;
+    if(d) parts.push(formatMonthFr(d));
+    return parts.length ? escapeHtml(parts.join(" · ")) : "";
+  }
+
   function coverInnerHtml(book){
+    const meta = coverMetaHtml(book);
+    const metaDiv = meta ? `<div class="cover-meta">${meta}</div>` : "";
     if(book.cover){
-      return `<img src="${book.cover}" alt="">`;
+      return `<img src="${book.cover}" alt="">` + (metaDiv ? `<div class="cover-text">${metaDiv}</div>` : "");
     }
     return `<div class="cover-text">
       <div class="cover-title">${escapeHtml(book.title || "Sans titre")}</div>
       <div class="cover-author">${escapeHtml(book.author || "")}</div>
+      ${metaDiv}
     </div>`;
   }
 
