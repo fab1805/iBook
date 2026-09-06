@@ -1,5 +1,5 @@
 <title>Carnet de Lecture</title>
-<meta name="build-version" content="20260906095825">
+<meta name="build-version" content="20260906100948">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -193,11 +193,16 @@
 
   /* ---------- grid ---------- */
   .grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:20px;
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:20px;
   }
   @media (max-width:560px){
     .grid{ grid-template-columns:1fr; gap:22px; }
     .cover{ height:320px; }
+  }
+  /* écran/téléphone en orientation paysage : 3 livres par ligne (au lieu de 4),
+     pour des fenêtres de livre plus grandes */
+  @media (orientation:landscape) and (min-width:561px) and (max-width:1024px){
+    .grid{ grid-template-columns:repeat(3, 1fr); }
   }
   .card{
     background:var(--paper-card); border:1px solid var(--line); border-radius:var(--radius);
@@ -207,7 +212,7 @@
   .card:hover{background:var(--paper-card-hover); transform:translateY(-2px)}
   .card:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
   .cover{
-    height:220px; position:relative; display:flex; align-items:flex-end; padding:14px;
+    height:250px; position:relative; display:flex; align-items:flex-end; padding:14px;
     color:#f4ede0; overflow:hidden;
   }
   .cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
