@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260906170833">
+<meta name="build-version" content="20260906173014">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -139,7 +139,7 @@
   .search input{
     width:100%; padding:9px 12px 9px 34px; border-radius:var(--radius);
     border:1px solid var(--line-strong); background:var(--paper-card); color:var(--ink);
-    font-size:13.5px; font-family:inherit;
+    font-size:16px; font-family:inherit;
   }
   .search input:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
   .search svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--ink-faint)}
@@ -237,6 +237,17 @@
   .status-chip[data-status="abandonne"]{background:rgba(23,19,15,.55); color:var(--abandoned-fg); border:1px solid var(--abandoned-line)}
   .status-chip[data-status="a_lire"]{background:rgba(23,19,15,.4); color:#fbf1ea}
 
+  .edit-btn{
+    position:absolute; bottom:10px; right:10px; z-index:3;
+    width:32px; height:32px; border-radius:50%; border:none; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(23,19,15,.55); color:#fbf1ea; cursor:pointer;
+    backdrop-filter:blur(2px); transition:background .15s, transform .1s;
+  }
+  .edit-btn svg{width:15px; height:15px}
+  .edit-btn:hover{background:rgba(23,19,15,.8); transform:scale(1.06)}
+  .edit-btn:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px}
+
   .card-body{padding:13px 14px 15px; display:flex; flex-direction:column; gap:6px; flex:1}
   .card-title{font-family:"Fraunces",serif; font-weight:600; font-size:16.5px; line-height:1.25;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--ink)}
@@ -290,12 +301,12 @@
 
   .field{margin-bottom:16px}
   .field label{display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:6px}
-  .field input[type=text], .field input[type=date], .field textarea{
+  .field input[type=text], .field input[type=month], .field textarea{
     width:100%; border:1px solid var(--line-strong); border-radius:var(--radius); background:var(--paper);
-    color:var(--ink); font-family:inherit; font-size:14px; padding:9px 11px;
+    color:var(--ink); font-family:inherit; font-size:16px; padding:9px 11px;
   }
   .field input:focus-visible, .field textarea:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
-  .field textarea{font-family:"Newsreader",serif; font-size:15.5px; line-height:1.55; resize:vertical; min-height:70px}
+  .field textarea{font-family:"Newsreader",serif; font-size:16px; line-height:1.55; resize:vertical; min-height:70px}
   .field .hint{font-size:11.5px; color:var(--ink-faint); margin-top:5px; line-height:1.4}
   .req::after{content:" *"; color:var(--accent)}
 
@@ -538,6 +549,9 @@
   function starSvg(){
     return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.6l-5.9 3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>`;
   }
+  function pencilSvg(){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+  }
 
   // ---------- filtering / sorting ----------
   function visibleBooks(){
@@ -613,6 +627,7 @@
         <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
           <div class="cover" style="${coverStyle(book)}">
             <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
+            <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
             ${coverInnerHtml(book)}
           </div>
           <div class="card-body">
@@ -630,6 +645,9 @@
     gridContainer.querySelectorAll(".card").forEach(el=>{
       el.addEventListener("click", ()=> openReadView(el.dataset.id));
       el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); openReadView(el.dataset.id); } });
+    });
+    gridContainer.querySelectorAll(".edit-btn").forEach(btn=>{
+      btn.addEventListener("click", e=>{ e.stopPropagation(); openEditor(btn.dataset.editId); });
     });
   }
 
