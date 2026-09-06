@@ -1,4 +1,7 @@
 <title>Carnet de Lecture</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=Work+Sans:wght@400;500;600;700&display=swap">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='19' font-size='20'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
@@ -480,7 +483,7 @@
     if(book.status === "lu" && typeof book.rating === "number"){
       parts.push("★ " + book.rating.toFixed(1) + "/10");
     }
-    const d = book.dateFinished || book.dateStarted;
+    const d = book.dateStarted;
     if(d) parts.push(formatMonthFr(d));
     return parts.length ? escapeHtml(parts.join(" · ")) : "";
   }
@@ -520,7 +523,7 @@
         list.sort((a,b)=> (b.rating ?? -1) - (a.rating ?? -1));
         break;
       case "finished":
-        list.sort((a,b)=> (b.dateFinished||"").localeCompare(a.dateFinished||""));
+        list.sort((a,b)=> (b.dateStarted||"").localeCompare(a.dateStarted||""));
         break;
       default:
         list.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
@@ -571,7 +574,7 @@
       const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
         ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
         : `<span></span>`;
-      const dateLabel = book.dateFinished ? formatMonthFr(book.dateFinished) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
+      const dateLabel = book.status === "lu" && book.dateStarted ? formatMonthFr(book.dateStarted) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
       return `
         <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
           <div class="cover" style="${coverStyle(book)}">
@@ -607,8 +610,9 @@
     const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
       ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
       : "";
-    const startedLabel = book.dateStarted ? "Commencé en " + formatMonthFr(book.dateStarted) : "";
-    const finishedLabel = book.dateFinished && book.status === "lu" ? "Terminé en " + formatMonthFr(book.dateFinished) : "";
+    const dateLabel = book.dateStarted
+      ? (book.status === "lu" ? "Lu en " : book.status === "en_cours" ? "Commencé en " : "") + formatMonthFr(book.dateStarted)
+      : "";
 
     const preHtml = book.preSummary
       ? `<p class="read-prose">${escapeHtml(book.preSummary)}</p>`
@@ -639,7 +643,7 @@
           <div class="read-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
           <div class="read-meta">
             ${ratingHtml}
-            ${finishedLabel ? `<span class="card-date">${escapeHtml(finishedLabel)}</span>` : (startedLabel ? `<span class="card-date">${escapeHtml(startedLabel)}</span>` : "")}
+            ${dateLabel ? `<span class="card-date">${escapeHtml(dateLabel)}</span>` : ""}
           </div>
 
           <div class="read-section">
@@ -672,7 +676,7 @@
     pendingDeleteId = null;
     const book = id ? bookById(id) : {
       title:"", author:"", status:"a_lire", rating:null,
-      dateStarted:currentMonthStr(), dateFinished:currentMonthStr(),
+      dateStarted:currentMonthStr(),
       notes:"", preSummary:"", postSummary:"", cover:""
     };
     renderModal(book);
@@ -722,15 +726,9 @@
                   </div>
                   <div class="hint">Utilisée si le statut est « Lu ».</div>
                 </div>
-                <div class="date-row">
-                  <div class="field">
-                    <label>Début (mois)</label>
-                    <input type="month" id="dateStarted" value="${escapeHtml(book.dateStarted||"")}">
-                  </div>
-                  <div class="field">
-                    <label>Fin (mois)</label>
-                    <input type="month" id="dateFinished" value="${escapeHtml(book.dateFinished||"")}">
-                  </div>
+                <div class="field">
+                  <label>Date de lecture (mois)</label>
+                  <input type="month" id="dateStarted" value="${escapeHtml(book.dateStarted||"")}">
                 </div>
               </div>
               <div class="form-col">
@@ -862,7 +860,6 @@
         status: currentStatus,
         rating: currentStatus === "lu" ? parseFloat(ratingInput.value) : (book.rating ?? null),
         dateStarted: document.getElementById("dateStarted").value || "",
-        dateFinished: document.getElementById("dateFinished").value || "",
         notes: document.getElementById("notesInput").value,
         preSummary: document.getElementById("preSummary").value,
         postSummary: document.getElementById("postSummary").value,
