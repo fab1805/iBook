@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260906174109">
+<meta name="build-version" content="20260906182708">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -885,7 +885,7 @@
       if(!author) items.push("Le nom de l'auteur du livre");
       items.push("Le nombre de pages de l'édition courante (un chiffre approximatif si besoin)");
       const list = items.map((it,i)=> (i+1) + ". " + it).join("\n");
-      return `Cherche des informations réelles sur le livre "${title}"${author ? " de " + author : ""}. Donne-moi :\n${list}\n\nJe vais coller ces éléments dans mon Carnet de Lecture.`;
+      return `Cherche des informations réelles sur le livre "${title}"${author ? " de " + author : ""}. Donne-moi :\n${list}\n\nPrésente chaque élément séparément dans son propre bloc de code (balises \`\`\`), un bloc par élément (couverture, résumé avant, résumé après${!author ? ", auteur" : ""}, nombre de pages), sans rien d'autre dans chaque bloc — pour que je puisse copier chacun en un clic depuis l'appli Claude et le coller directement dans le champ correspondant de mon Carnet de Lecture.`;
     }
 
     const btnCopyPrompt = document.getElementById("btnCopyPrompt");
