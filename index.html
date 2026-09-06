@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260906173014">
+<meta name="build-version" content="20260906173459">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -273,7 +273,7 @@
   }
   .modal{
     background:var(--paper-card); border-radius:6px; max-width:860px; width:100%;
-    max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px -12px rgba(0,0,0,.4);
+    max-height:88vh; overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px -12px rgba(0,0,0,.4);
     border:1px solid var(--line);
   }
   .modal-head{
@@ -332,8 +332,8 @@
   .spoiler-details summary::after{content:"Afficher"; margin-left:auto; font-size:11px; text-transform:none; letter-spacing:0; color:var(--ink-faint); font-weight:600}
   .spoiler-details[open] summary::after{content:"Masquer"}
 
-  .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
-  .confirm-delete{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft)}
+  .modal-actions{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:22px; padding-top:18px; border-top:1px solid var(--line); flex-wrap:wrap; row-gap:12px}
+  .confirm-delete{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink-soft); flex-wrap:wrap; row-gap:8px}
 
   /* ---------- full-page read view ---------- */
   .read-page{position:fixed; inset:0; background:var(--paper); z-index:60; overflow-y:auto}
@@ -928,7 +928,7 @@
             Supprimer définitivement ?
             <button class="btn btn-danger" id="btnDeleteConfirm">Oui, supprimer</button>
           </span>`;
-        document.getElementById("btnDeleteStart").hidden = true;
+        document.getElementById("btnDeleteStart").style.display = "none";
         document.getElementById("btnDeleteConfirm").addEventListener("click", async ()=>{
           await deleteBook(editingId);
           closeModal();
