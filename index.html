@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260908052332">
+<meta name="build-version" content="20260908054555">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -226,6 +226,20 @@
   }
   .list-row .edit-btn:hover{background:var(--paper-card-hover); color:var(--ink)}
   .list-row .edit-btn svg{width:13px; height:13px}
+  .list-row .fav-btn{
+    position:static; width:28px; height:28px; flex:0 0 auto; background:transparent; color:var(--ink-faint);
+    border:1px solid var(--line-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:color .15s, border-color .15s;
+  }
+  .list-row .fav-btn:hover{background:var(--paper-card-hover); color:var(--ink)}
+  .list-row .fav-btn svg{width:13px; height:13px}
+  .list-row .fav-btn.active{color:var(--danger); border-color:var(--danger)}
+  .list-row .share-btn{
+    position:static; width:28px; height:28px; flex:0 0 auto; background:transparent; color:var(--ink-faint);
+    border:1px solid var(--line-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .list-row .share-btn:hover{background:var(--paper-card-hover); color:var(--ink)}
+  .list-row .share-btn svg{width:12px; height:12px}
   @media (min-width:561px){
     .list-row .list-date{display:block}
   }
@@ -300,6 +314,29 @@
   .edit-btn svg{width:15px; height:15px}
   .edit-btn:hover{background:rgba(23,19,15,.8); transform:scale(1.06)}
   .edit-btn:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px}
+
+  .fav-btn{
+    position:absolute; bottom:10px; right:48px; z-index:3;
+    width:32px; height:32px; border-radius:50%; border:none; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(23,19,15,.55); color:#fbf1ea; cursor:pointer;
+    backdrop-filter:blur(2px); transition:background .15s, transform .1s, color .15s;
+  }
+  .fav-btn svg{width:15px; height:15px}
+  .fav-btn:hover{background:rgba(23,19,15,.8); transform:scale(1.06)}
+  .fav-btn:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px}
+  .fav-btn.active{color:var(--danger)}
+
+  .share-btn{
+    position:absolute; bottom:10px; right:86px; z-index:3;
+    width:32px; height:32px; border-radius:50%; border:none; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(23,19,15,.55); color:#fbf1ea; cursor:pointer;
+    backdrop-filter:blur(2px); transition:background .15s, transform .1s;
+  }
+  .share-btn svg{width:14px; height:14px}
+  .share-btn:hover{background:rgba(23,19,15,.8); transform:scale(1.06)}
+  .share-btn:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px}
 
   .card-body{padding:13px 14px 15px; display:flex; flex-direction:column; gap:6px; flex:1}
   .card-title{font-family:"Fraunces",serif; font-weight:600; font-size:16.5px; line-height:1.25;
@@ -390,8 +427,11 @@
   .read-page{position:fixed; inset:0; background:var(--paper); z-index:60; overflow-y:auto}
   .read-topbar{
     position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center;
-    padding:14px 20px; background:var(--paper); border-bottom:1px solid var(--line);
+    padding:14px 20px; background:var(--paper); border-bottom:1px solid var(--line); flex-wrap:wrap; row-gap:8px;
   }
+  .read-topbar-actions{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  .read-topbar-actions .btn svg{width:14px; height:14px}
+  #btnFavRead.active{color:var(--danger); border-color:var(--danger)}
   .read-content{max-width:680px; margin:0 auto; padding:32px 24px 100px}
   .read-cover{
     height:320px; border-radius:6px; overflow:hidden; position:relative; margin-bottom:26px;
@@ -485,10 +525,10 @@
       <option value="rating">Meilleure note</option>
     </select>
     <div class="segmented view-toggle" id="viewToggle">
-      <button data-value="grid" class="active" aria-label="Affichage vignettes" title="Vignettes">
+      <button data-value="grid" aria-label="Affichage vignettes" title="Vignettes">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
       </button>
-      <button data-value="list" aria-label="Affichage liste" title="Liste">
+      <button data-value="list" class="active" aria-label="Affichage liste" title="Liste">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
       </button>
     </div>
@@ -525,7 +565,7 @@
   let filterStatus = "all";
   let searchQuery = "";
   let sortMode = "finished";
-  let viewMode = "grid";
+  let viewMode = "list";
   let editingId = null;
   let pendingDeleteId = null;
 
@@ -625,6 +665,14 @@
   function pencilSvg(){
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   }
+  function heartSvg(filled){
+    return filled
+      ? `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-6.7-4.35-9.3-8.28C1 10.02 1.6 6.6 4.4 5.1c2.2-1.18 4.7-.5 6.1 1.2L12 8.1l1.5-1.8c1.4-1.7 3.9-2.38 6.1-1.2 2.8 1.5 3.4 4.92 1.7 7.62C18.7 16.65 12 21 12 21z"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.7-4.35-9.3-8.28C1 10.02 1.6 6.6 4.4 5.1c2.2-1.18 4.7-.5 6.1 1.2L12 8.1l1.5-1.8c1.4-1.7 3.9-2.38 6.1-1.2 2.8 1.5 3.4 4.92 1.7 7.62C18.7 16.65 12 21 12 21z"/></svg>`;
+  }
+  function shareSvg(){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>`;
+  }
 
   // ---------- filtering / sorting ----------
   function visibleBooks(){
@@ -692,6 +740,8 @@
       <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
         <div class="cover" style="${coverStyle(book)}">
           <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
+          <button type="button" class="fav-btn${book.favorite ? " active" : ""}" data-fav-id="${book.id}" aria-label="${book.favorite ? "Retirer le coup de cœur" : "Marquer comme coup de cœur"}" title="Coup de cœur">${heartSvg(book.favorite)}</button>
+          <button type="button" class="share-btn" data-share-id="${book.id}" aria-label="Partager ${escapeHtml(book.title)} sur WhatsApp" title="Partager sur WhatsApp">${shareSvg()}</button>
           <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
           ${coverInnerHtml(book)}
         </div>
@@ -725,6 +775,8 @@
           <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
           ${ratingHtml}
           <span class="list-date">${escapeHtml(dateLabel)}</span>
+          <button type="button" class="fav-btn${book.favorite ? " active" : ""}" data-fav-id="${book.id}" aria-label="${book.favorite ? "Retirer le coup de cœur" : "Marquer comme coup de cœur"}" title="Coup de cœur">${heartSvg(book.favorite)}</button>
+          <button type="button" class="share-btn" data-share-id="${book.id}" aria-label="Partager ${escapeHtml(book.title)} sur WhatsApp" title="Partager sur WhatsApp">${shareSvg()}</button>
           <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
         </div>
       </div>`;
@@ -780,6 +832,16 @@
     gridContainer.querySelectorAll(".edit-btn").forEach(btn=>{
       btn.addEventListener("click", e=>{ e.stopPropagation(); openEditor(btn.dataset.editId); });
     });
+    gridContainer.querySelectorAll(".fav-btn").forEach(btn=>{
+      btn.addEventListener("click", e=>{ e.stopPropagation(); toggleFavorite(btn.dataset.favId); });
+    });
+    gridContainer.querySelectorAll(".share-btn").forEach(btn=>{
+      btn.addEventListener("click", e=>{
+        e.stopPropagation();
+        const book = bookById(btn.dataset.shareId);
+        if(book) shareOnWhatsApp(book);
+      });
+    });
   }
 
   // ---------- editor modal ----------
@@ -812,11 +874,17 @@
          </details>`
       : `<p class="read-prose muted">Pas encore de résumé après lecture.</p>`;
 
+    const favChip = book.favorite ? `<span class="card-date" style="color:var(--danger); font-weight:600">❤️ Coup de cœur</span>` : "";
+
     modalRoot.innerHTML = `
-      <div class="read-page" id="readPage">
+      <div class="read-page" id="readPage" data-book-id="${book.id}">
         <div class="read-topbar">
           <button class="btn btn-ghost" id="btnBack">← Retour</button>
-          <button class="btn btn-ghost" id="btnEditFromRead">✏️ Modifier</button>
+          <div class="read-topbar-actions">
+            <button class="btn btn-ghost${book.favorite ? " active" : ""}" id="btnFavRead">${heartSvg(book.favorite)} ${book.favorite ? "Coup de cœur" : "Coup de cœur"}</button>
+            <button class="btn btn-ghost" id="btnShare">📤 Partager sur WhatsApp</button>
+            <button class="btn btn-ghost" id="btnEditFromRead">✏️ Modifier</button>
+          </div>
         </div>
         <div class="read-content">
           <div class="read-cover" style="${coverStyle(book)}">
@@ -827,6 +895,7 @@
           <div class="read-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
           <div class="read-meta">
             ${ratingHtml}
+            ${favChip}
             ${dateLabel ? `<span class="card-date">${escapeHtml(dateLabel)}</span>` : ""}
             ${pagesLabel ? `<span class="card-date">${escapeHtml(pagesLabel)}</span>` : ""}
           </div>
@@ -850,6 +919,8 @@
 
     document.getElementById("btnBack").addEventListener("click", closeModal);
     document.getElementById("btnEditFromRead").addEventListener("click", ()=> openEditor(book.id));
+    document.getElementById("btnFavRead").addEventListener("click", ()=> toggleFavorite(book.id));
+    document.getElementById("btnShare").addEventListener("click", ()=> shareOnWhatsApp(book));
     document.addEventListener("keydown", readEscHandler);
     function readEscHandler(e){
       if(e.key === "Escape"){ closeModal(); document.removeEventListener("keydown", readEscHandler); }
@@ -1098,6 +1169,7 @@
       preSummary: row.pre_summary || "",
       postSummary: row.post_summary || "",
       cover: row.cover || "",
+      favorite: !!row.favorite,
       createdAt: row.created_at ? new Date(row.created_at).getTime() : 0
     };
   }
@@ -1158,6 +1230,50 @@
       console.error("Erreur de suppression", err);
       showBanner("<strong>Échec de la suppression —</strong> " + escapeHtml(err && err.message ? err.message : "erreur inconnue") + ".");
     }
+  }
+
+  // ---------- favoris ("coup de cœur") ----------
+  async function toggleFavorite(id){
+    const book = bookById(id);
+    if(!book) return;
+    if(!dbReady){
+      showBanner("<strong>Non connecté —</strong> impossible de mettre à jour le coup de cœur. Vérifiez la connexion internet.");
+      return;
+    }
+    const next = !book.favorite;
+    try{
+      const {error} = await sb.from("books").update({favorite: next}).eq("id", id);
+      if(error) throw error;
+      await fetchProfileBooks(currentProfile);
+      // si la fiche de lecture de ce livre est actuellement ouverte, on la rafraîchit pour refléter le nouvel état
+      const openPage = modalRoot.querySelector("#readPage");
+      if(openPage && openPage.dataset.bookId === id) openReadView(id);
+    }catch(err){
+      console.error("Erreur mise à jour coup de cœur", err);
+      showBanner("<strong>Échec —</strong> impossible de mettre à jour le coup de cœur.");
+    }
+  }
+
+  // ---------- partage WhatsApp ----------
+  // volontairement SANS le résumé après lecture (spoiler) : uniquement de quoi donner envie de lire le livre.
+  function shareBookText(book){
+    const lines = [];
+    lines.push(`📚 ${book.title || "Sans titre"}`);
+    if(book.author) lines.push(`✍️ ${book.author}`);
+    if(book.status === "lu" && typeof book.rating === "number") lines.push(`⭐ ${book.rating.toFixed(1)}/10`);
+    if(book.favorite) lines.push(`❤️ Un coup de cœur de ${PROFILES[currentProfile].label} !`);
+    lines.push("");
+    lines.push(book.preSummary ? book.preSummary : "Je vous le recommande !");
+    if(book.cover){
+      lines.push("");
+      lines.push(book.cover);
+    }
+    return lines.join("\n");
+  }
+
+  function shareOnWhatsApp(book){
+    const text = shareBookText(book);
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
   }
 
   // ---------- toolbar wiring ----------
