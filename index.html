@@ -1,6 +1,6 @@
 <title>Carnet de Lecture</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="build-version" content="20260906185214">
+<meta name="build-version" content="20260908052332">
 <script>
 // Vérifie en tâche de fond si une version plus récente du site a été publiée
 // (contourne le cache du navigateur/raccourci écran d'accueil) et force un
@@ -183,6 +183,51 @@
     padding:8px 30px 8px 12px; border-radius:var(--radius); border:1px solid var(--line-strong);
     background:var(--paper-card) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%23978c76"/></svg>') no-repeat right 11px center;
     color:var(--ink); font-size:12.5px; font-weight:600; appearance:none; cursor:pointer;
+  }
+
+  .view-toggle{flex:0 0 auto}
+  .view-toggle button{display:flex; align-items:center; justify-content:center; padding:8px 11px}
+
+  /* ---------- year grouping ---------- */
+  .year-heading{
+    display:flex; align-items:baseline; gap:12px; margin:32px 0 16px; font-family:"Fraunces",serif;
+    font-weight:600; font-size:20px; color:var(--ink);
+  }
+  .year-heading::after{content:""; flex:1; height:1px; background:var(--line-strong)}
+  .year-heading .count{font-family:inherit; font-weight:500; font-size:12.5px; color:var(--ink-faint)}
+  .year-block:first-child .year-heading{margin-top:4px}
+
+  /* ---------- list view ---------- */
+  .list{display:flex; flex-direction:column; gap:10px}
+  .list-row{
+    display:flex; align-items:center; gap:14px; background:var(--paper-card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); cursor:pointer; padding:8px 14px 8px 8px;
+    transition:background .15s, transform .1s;
+  }
+  .list-row:hover{background:var(--paper-card-hover)}
+  .list-row:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .list-row .list-cover{
+    width:44px; height:60px; flex:0 0 auto; border-radius:6px; overflow:hidden; position:relative;
+    background:var(--accent); display:flex; align-items:center; justify-content:center;
+  }
+  .list-row .list-cover img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+  .list-row .list-cover svg{width:16px; height:16px; color:var(--accent-ink); opacity:.7}
+  .list-row .list-main{flex:1 1 auto; min-width:0}
+  .list-row .list-title{font-family:"Fraunces",serif; font-weight:600; font-size:15px; line-height:1.25; text-overflow:ellipsis; overflow:hidden; white-space:nowrap}
+  .list-row .list-author{font-size:12.5px; color:var(--ink-soft); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:2px}
+  .list-row .list-side{display:flex; align-items:center; gap:10px; flex:0 0 auto}
+  .list-row .list-date{font-size:11.5px; color:var(--ink-faint); white-space:nowrap; display:none}
+  .list-row .list-rating{display:flex; align-items:center; gap:4px; font-size:12.5px; font-weight:700; color:var(--ink); white-space:nowrap}
+  .list-row .list-rating svg{width:12px; height:12px; color:var(--accent)}
+  .list-row .status-chip{position:static; font-size:10px; padding:3px 8px}
+  .list-row .edit-btn{
+    position:static; width:28px; height:28px; flex:0 0 auto; background:transparent; color:var(--ink-faint);
+    border:1px solid var(--line-strong); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .list-row .edit-btn:hover{background:var(--paper-card-hover); color:var(--ink)}
+  .list-row .edit-btn svg{width:13px; height:13px}
+  @media (min-width:561px){
+    .list-row .list-date{display:block}
   }
 
   .banner{
@@ -434,11 +479,19 @@
       <button data-value="abandonne">Abandonné</button>
     </div>
     <select class="sort" id="sortSelect">
+      <option value="finished" selected>Date de lecture</option>
       <option value="recent">Ajout récent</option>
       <option value="title">Titre A→Z</option>
       <option value="rating">Meilleure note</option>
-      <option value="finished">Date de lecture</option>
     </select>
+    <div class="segmented view-toggle" id="viewToggle">
+      <button data-value="grid" class="active" aria-label="Affichage vignettes" title="Vignettes">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>
+      </button>
+      <button data-value="list" aria-label="Affichage liste" title="Liste">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      </button>
+    </div>
   </div>
 
   <div id="gridContainer"></div>
@@ -471,7 +524,8 @@
   let dbReady = false;
   let filterStatus = "all";
   let searchQuery = "";
-  let sortMode = "recent";
+  let sortMode = "finished";
+  let viewMode = "grid";
   let editingId = null;
   let pendingDeleteId = null;
 
@@ -485,6 +539,10 @@
   try{
     const saved = localStorage.getItem("carnet_lecture_profile");
     if(saved && PROFILES[saved]) currentProfile = saved;
+  }catch(e){ /* localStorage unavailable — keep default */ }
+  try{
+    const savedView = localStorage.getItem("carnet_lecture_view");
+    if(savedView === "grid" || savedView === "list") viewMode = savedView;
   }catch(e){ /* localStorage unavailable — keep default */ }
 
   const gridContainer = document.getElementById("gridContainer");
@@ -605,6 +663,73 @@
     document.getElementById("statAvg").textContent = avg == null ? "—" : avg.toFixed(1);
   }
 
+  // groups a (typically date-sorted) list into year buckets for the "arborescence par année".
+  // only meaningful when sorted by reading date — for other sort modes we return a single,
+  // unlabeled bucket so the grid/list renders exactly as before.
+  function yearGroups(list){
+    if(sortMode !== "finished"){
+      return [{ year:null, books:list }];
+    }
+    const groups = [];
+    let current = null;
+    list.forEach(book=>{
+      const year = book.dateStarted ? book.dateStarted.slice(0,4) : null;
+      if(!current || current.year !== year){
+        current = { year, books:[] };
+        groups.push(current);
+      }
+      current.books.push(book);
+    });
+    return groups;
+  }
+
+  function cardHtml(book){
+    const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
+      ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
+      : `<span></span>`;
+    const dateLabel = book.status === "lu" && book.dateStarted ? formatMonthFr(book.dateStarted) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
+    return `
+      <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
+        <div class="cover" style="${coverStyle(book)}">
+          <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
+          <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
+          ${coverInnerHtml(book)}
+        </div>
+        <div class="card-body">
+          <div class="card-title">${escapeHtml(book.title || "Sans titre")}</div>
+          <div class="card-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
+          <div class="card-foot">
+            ${ratingHtml}
+            <span class="card-date">${escapeHtml(dateLabel)}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function listRowHtml(book){
+    const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
+      ? `<div class="list-rating">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
+      : "";
+    const dateLabel = book.status === "lu" && book.dateStarted ? formatMonthFr(book.dateStarted) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
+    const coverInner = book.cover
+      ? `<img src="${book.cover}" alt="">`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5c-1.6-1.3-4-2-6.5-2S2 4 2 4v14.5s2-.5 3.5-.5 3.9.7 5 2c1.1-1.3 3.5-2 5-2s3.5.5 3.5.5V4s-1-.5-3.5-.5-4.9.7-6.5 2Z"/><path d="M12 5.5v14.5"/></svg>`;
+    return `
+      <div class="list-row" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
+        <div class="list-cover">${coverInner}</div>
+        <div class="list-main">
+          <div class="list-title">${escapeHtml(book.title || "Sans titre")}</div>
+          <div class="list-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
+        </div>
+        <div class="list-side">
+          <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
+          ${ratingHtml}
+          <span class="list-date">${escapeHtml(dateLabel)}</span>
+          <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
+        </div>
+      </div>`;
+  }
+
   function renderGrid(){
     renderStats();
     const list = visibleBooks();
@@ -633,31 +758,22 @@
       return;
     }
 
-    const cards = list.map(book => {
-      const ratingHtml = (book.status === "lu" && typeof book.rating === "number")
-        ? `<div class="rating-badge">${starSvg()}${book.rating.toFixed(1)}<span style="color:var(--ink-faint);font-weight:500">/10</span></div>`
-        : `<span></span>`;
-      const dateLabel = book.status === "lu" && book.dateStarted ? formatMonthFr(book.dateStarted) : (book.status==="en_cours" && book.dateStarted ? "En cours" : "");
-      return `
-        <div class="card" tabindex="0" role="button" data-id="${book.id}" aria-label="Ouvrir ${escapeHtml(book.title)}">
-          <div class="cover" style="${coverStyle(book)}">
-            <span class="status-chip" data-status="${book.status}">${STATUS_LABEL[book.status]}</span>
-            <button type="button" class="edit-btn" data-edit-id="${book.id}" aria-label="Modifier ${escapeHtml(book.title)}" title="Modifier">${pencilSvg()}</button>
-            ${coverInnerHtml(book)}
-          </div>
-          <div class="card-body">
-            <div class="card-title">${escapeHtml(book.title || "Sans titre")}</div>
-            <div class="card-author">${escapeHtml(book.author || "Auteur inconnu")}</div>
-            <div class="card-foot">
-              ${ratingHtml}
-              <span class="card-date">${escapeHtml(dateLabel)}</span>
-            </div>
-          </div>
-        </div>`;
+    const groups = yearGroups(list);
+    const itemHtml = viewMode === "list" ? listRowHtml : cardHtml;
+    const wrapClass = viewMode === "list" ? "list" : "grid";
+
+    const html = groups.map(group=>{
+      const heading = group.year
+        ? `<h2 class="year-heading">${escapeHtml(group.year)}<span class="count">${group.books.length} livre${group.books.length>1?"s":""}</span></h2>`
+        : (group.year === null && sortMode === "finished"
+            ? `<h2 class="year-heading">Sans date<span class="count">${group.books.length} livre${group.books.length>1?"s":""}</span></h2>`
+            : "");
+      const items = group.books.map(itemHtml).join("");
+      return `<div class="year-block">${heading}<div class="${wrapClass}">${items}</div></div>`;
     }).join("");
 
-    gridContainer.innerHTML = `<div class="grid">${cards}</div>`;
-    gridContainer.querySelectorAll(".card").forEach(el=>{
+    gridContainer.innerHTML = html;
+    gridContainer.querySelectorAll(".card, .list-row").forEach(el=>{
       el.addEventListener("click", ()=> openReadView(el.dataset.id));
       el.addEventListener("keydown", e=>{ if(e.key==="Enter" || e.key===" "){ e.preventDefault(); openReadView(el.dataset.id); } });
     });
@@ -1065,6 +1181,15 @@
     renderGrid();
   });
 
+  document.getElementById("viewToggle").addEventListener("click", (e)=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    viewMode = btn.dataset.value;
+    try{ localStorage.setItem("carnet_lecture_view", viewMode); }catch(e){ /* ignore */ }
+    document.querySelectorAll("#viewToggle button").forEach(b=>b.classList.toggle("active", b===btn));
+    renderGrid();
+  });
+
   // ---------- profile switching ----------
   function updateProfileTabsUI(){
     document.querySelectorAll("#profileTabs .profile-tab").forEach(btn=>{
@@ -1108,6 +1233,8 @@
 
   // ---------- initial render ----------
   updateProfileTabsUI();
+  document.querySelectorAll("#viewToggle button").forEach(b=>b.classList.toggle("active", b.dataset.value === viewMode));
+  document.getElementById("sortSelect").value = sortMode;
   renderGrid();
 
   // ---------- Supabase init ----------
